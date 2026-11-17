@@ -1,0 +1,126 @@
+Comando: uv run --offline python -m src.context_audit --symbol evaluate_sla_status
+====================================================================================
+ AUDITORÍA DE CONTEXT ENGINEERING: Símbolo objetivo `evaluate_sla_status`
+ Tokenizador activo: tiktoken (o200k_base)
+====================================================================================
+Estrategia                             | Alcance            | Caracteres | Tokens
+------------------------------------------------------------------------------------
+1. Fuerza Bruta (glob + read todo)     | 9 archivos         | 50524      | 12271 tokens
+2. Búsqueda Textual (grep + read .py)  | 4 archivos .py     | 24933      | 6207 tokens
+3. Semántica vía LSP (AST/Symbols)     | Definición+Refs    | 4511       | 1138 tokens
+------------------------------------------------------------------------------------
+-> Reducción LSP vs. Fuerza Bruta (`glob` + `read`): 90.7% menos tokens
+-> Reducción LSP vs. Búsqueda (`grep` + `read` .py): 81.7% menos tokens
+
+=== Payload Semántico Extraído estilo LSP (Listo para inyectar al LLM) ===
+<lsp_context symbol="evaluate_sla_status">
+  <!-- 1. Definiciones de Tipos y Políticas (LSP Hover / Type Definition) -->
+# [LSP textDocument/hover type] src/models.py:12
+class SLARule:
+    """Define el acuerdo de nivel de servicio (SLA) para un nivel de severidad."""
+
+    severity: SeverityLevel
+    max_resolution_minutes: int
+    operates_24x7: bool
+    escalation_threshold_ratio: float = 0.75
+
+# [LSP textDocument/hover type] src/models.py:22
+class Incident:
+    """Representa un incidente registrado en la plataforma IncidentOps."""
+
+    incident_id: str
+    title: str
+    component: str
+    severity: SeverityLevel
+    status: IncidentStatus
+    created_at: datetime
+    resolved_at: Optional[datetime] = None
+
+# [LSP textDocument/hover type] src/models.py:35
+class SLAEvaluation:
+    """Resultado determinista de la evaluación de SLA de un incidente."""
+
+    incident_id: str
+    severity: SeverityLevel
+    elapsed_minutes: int
+    allowed_minutes: int
+    remaining_minutes: int
+    is_breached: bool
+    requires_escalation: bool
+
+# [LSP textDocument/hover type] src/models.py:48
+class TriageResult:
+    """Resultado estructurado producido por el clasificador de triaje."""
+
+    incident_id: str
+    severity: SeverityLevel
+    component: str
+    rationale: str
+    recommended_team: str
+    duplicate_group_key: str
+    consistency_ratio: float = 1.0
+
+# [LSP textDocument/hover symbol] src/sla_calculator.py:7
+SLA_POLICY_TABLE: Dict[SeverityLevel, SLARule] = {
+    "P0": SLARule(severity="P0", max_resolution_minutes=60, operates_24x7=True),
+    "P1": SLARule(severity="P1", max_resolution_minutes=240, operates_24x7=True),
+    "P2": SLARule(severity="P2", max_resolution_minutes=480, operates_24x7=False),
+    "P3": SLARule(severity="P3", max_resolution_minutes=1440, operates_24x7=False),
+}
+
+  <!-- 2. Definición Exacta del Símbolo (LSP GoToDefinition) -->
+# [LSP textDocument/definition] src/sla_calculator.py:15
+def get_sla_rule_for_severity(severity: SeverityLevel) -> SLARule:
+    if severity not in SLA_POLICY_TABLE:
+        raise ValueError(f"Severidad no válida: {severity}")
+    return SLA_POLICY_TABLE[severity]
+
+# [LSP textDocument/definition] src/sla_calculator.py:39
+def evaluate_sla_status(incident: Incident, reference_time: datetime) -> SLAEvaluation:
+    """Evalúa en una única hora local de negocio, con datetime sin zona.
+
+    resolved_at detiene el reloj. Los umbrales usan segundos exactos; los
+    campos públicos conservan minutos enteros. No modifica el incidente.
+    """
+    rule = get_sla_rule_for_severity(incident.severity)
+    end_time = incident.resolved_at or reference_time
+    for stamp in (incident.created_at, reference_time, end_time):
+        if stamp.tzinfo is not None:
+            raise ValueError("Use fechas sin zona en una misma hora local de negocio.")
+    if end_time < incident.created_at:
+        raise ValueError("El tiempo de referencia o cierre no puede ser anterior a la creación.")
+
+    seconds = ((end_time - incident.created_at).total_seconds()
+               if rule.operates_24x7
+               else _business_seconds(incident.created_at, end_time))
+    elapsed_minutes = int(seconds // 60)
+    allowed_seconds = rule.max_resolution_minutes * 60
+    is_breached = seconds > allowed_seconds
+    is_resolved = incident.status == "RESOLVED" or incident.resolved_at is not None
+    requires_escalation = (
+        not is_resolved
+        and (is_breached or seconds >= allowed_seconds * rule.escalation_threshold_ratio)
+    )
+    return SLAEvaluation(
+        incident_id=incident.incident_id,
+        severity=incident.severity,
+        elapsed_minutes=elapsed_minutes,
+        allowed_minutes=rule.max_resolution_minutes,
+        remaining_minutes=rule.max_resolution_minutes - elapsed_minutes,
+        is_breached=is_breached,
+        requires_escalation=requires_escalation,
+    )
+
+  <!-- 3. Referencias de Invocación en el Proyecto (LSP FindReferences) -->
+# [LSP textDocument/references] src/incident_repository.py:146
+  L145:             )
+  L146:             sla_eval = evaluate_sla_status(incident, reference_time=reference_time)
+  L147:             results.append(
+
+# [LSP textDocument/references] src/sla_calculator.py:92
+  L91:         incident = Incident(str(idx), name, "reporting-api", severity, "OPEN", datetime.fromisoformat(start))
+  L92:         result = evaluate_sla_status(incident, datetime.fromisoformat(end))
+  L93:         actual = (result.elapsed_minutes, result.is_breached, result.requires_escalation)
+</lsp_context>
+
+Código de salida: 0

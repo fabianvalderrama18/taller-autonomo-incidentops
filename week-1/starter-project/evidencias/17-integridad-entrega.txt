@@ -1,0 +1,5 @@
+Validación de integridad: correcta.
+JSON de entrada, repositorio SQLite, herramienta de auditoría, pyproject.toml y uv.lock idénticos al proyecto original.
+Sintaxis Python de todos los módulos válida mediante ast.parse.
+ADR contiene bloque Mermaid flowchart TD, revisado estructuralmente. No se ejecutó un renderizador Mermaid.
+El ZIP excluye entornos virtuales, caches y archivos del sistema.

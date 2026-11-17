@@ -1,0 +1,14 @@
+Comando: uv run --offline python -m src.context_audit --compare-formats
+==========================================================================
+ IMPACTO DEL FORMATO DE DATOS EN LA VENTANA DE CONTEXTO (10 Incidentes)
+ Tokenizador activo: tiktoken (o200k_base)
+==========================================================================
+Formato de Serialización       | Caracteres   | Tokens
+--------------------------------------------------------------------------
+JSON Indentado (indent=2)      | 2942         | 878 tokens
+JSON Compacto (minified)       | 2641         | 728 tokens
+YAML Equivalente               | 2579         | 755 tokens
+CSV Delimitado por '|'         | 2171         | 617 tokens
+--------------------------------------------------------------------------
+
+Código de salida: 0

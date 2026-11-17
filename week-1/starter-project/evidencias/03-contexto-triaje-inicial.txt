@@ -1,0 +1,116 @@
+====================================================================================
+ AUDITORÍA DE CONTEXT ENGINEERING: Símbolo objetivo `classify_incident_report`
+ Tokenizador activo: tiktoken (o200k_base)
+====================================================================================
+Estrategia                             | Alcance            | Caracteres | Tokens
+------------------------------------------------------------------------------------
+1. Fuerza Bruta (glob + read todo)     | 8 archivos         | 32718      | 8216 tokens
+2. Búsqueda Textual (grep + read .py)  | 2 archivos .py     | 5522       | 1412 tokens
+3. Semántica vía LSP (AST/Symbols)     | Definición+Refs    | 3987       | 1069 tokens
+------------------------------------------------------------------------------------
+-> Reducción LSP vs. Fuerza Bruta (`glob` + `read`): 87.0% menos tokens
+-> Reducción LSP vs. Búsqueda (`grep` + `read` .py): 24.3% menos tokens
+
+=== Payload Semántico Extraído estilo LSP (Listo para inyectar al LLM) ===
+<lsp_context symbol="classify_incident_report">
+  <!-- 1. Definiciones de Tipos y Políticas (LSP Hover / Type Definition) -->
+# [LSP textDocument/hover type] src/models.py:12
+class SLARule:
+    """Define el acuerdo de nivel de servicio (SLA) para un nivel de severidad."""
+
+    severity: SeverityLevel
+    max_resolution_minutes: int
+    operates_24x7: bool
+    escalation_threshold_ratio: float = 0.75
+
+# [LSP textDocument/hover type] src/models.py:22
+class Incident:
+    """Representa un incidente registrado en la plataforma IncidentOps."""
+
+    incident_id: str
+    title: str
+    component: str
+    severity: SeverityLevel
+    status: IncidentStatus
+    created_at: datetime
+    resolved_at: Optional[datetime] = None
+
+# [LSP textDocument/hover type] src/models.py:35
+class SLAEvaluation:
+    """Resultado determinista de la evaluación de SLA de un incidente."""
+
+    incident_id: str
+    severity: SeverityLevel
+    elapsed_minutes: int
+    allowed_minutes: int
+    remaining_minutes: int
+    is_breached: bool
+    requires_escalation: bool
+
+# [LSP textDocument/hover type] src/models.py:48
+class TriageResult:
+    """Resultado estructurado producido por el clasificador de triaje con IA."""
+
+    incident_id: str
+    severity: SeverityLevel
+    component: str
+    rationale: str
+    consistency_ratio: float = 1.0
+
+# [LSP textDocument/hover symbol] src/sla_calculator.py:17
+SLA_POLICY_TABLE: Dict[SeverityLevel, SLARule] = {
+    "P0": SLARule(severity="P0", max_resolution_minutes=60, operates_24x7=True),
+    "P1": SLARule(severity="P1", max_resolution_minutes=240, operates_24x7=True),
+    "P2": SLARule(severity="P2", max_resolution_minutes=480, operates_24x7=False),
+    "P3": SLARule(severity="P3", max_resolution_minutes=1440, operates_24x7=False),
+}
+
+  <!-- 2. Definición Exacta del Símbolo (LSP GoToDefinition) -->
+# [LSP textDocument/definition] src/triage_rules.py:27
+def classify_incident_report(incident_id: str, raw_text: str) -> TriageResult:
+    """Clasifica un reporte de incidente aplicando reglas heurísticas iniciales.
+
+    DEUDA TÉCNICA INTENCIONAL:
+    - Evalúa palabras sueltas ("hoy", "urgente") antes de analizar el impacto real
+      (caída global vs. cuenta individual vs. entorno de staging).
+    - No normaliza componentes ni identifica el equipo de guardia correspondiente.
+    """
+    text_lower = raw_text.lower()
+
+    # Bug de diseño: si un usuario dice "necesito acceder hoy" por su cuenta bloqueada,
+    # se dispara como P0 antes de verificar si es una caída global o un caso individual.
+    if "urgente" in text_lower or "hoy" in text_lower or "502" in text_lower:
+        severity: SeverityLevel = "P0"
+    elif "94%" in text_lower or "timeout" in text_lower:
+        severity = "P1"
+    elif "lenta" in text_lower or "segundos" in text_lower:
+        severity = "P2"
+    else:
+        severity = "P3"
+
+    if "pago" in text_lower or "cobro" in text_lower or "tarjeta" in text_lower:
+        component = "payments-gateway"
+    elif "cuenta" in text_lower or "ingresar" in text_lower:
+        component = "auth-identity"
+    elif "postgresql" in text_lower or "conexiones" in text_lower:
+        component = "database-cluster"
+    elif "certificado" in text_lower or "tls" in text_lower:
+        component = "infra-certificates"
+    elif "botón" in text_lower or "color" in text_lower:
+        component = "frontend-ui"
+    else:
+        component = "reporting-api"
+
+    return TriageResult(
+        incident_id=incident_id,
+        severity=severity,
+        component=component,
+        rationale=f"Clasificación heurística legacy asignada a {component} ({severity}).",
+    )
+
+  <!-- 3. Referencias de Invocación en el Proyecto (LSP FindReferences) -->
+# [LSP textDocument/references] src/triage_rules.py:77
+  L76:     for item in incidents:
+  L77:         result = classify_incident_report(item["id"], item["raw_text"])
+  L78:         snippet = item["raw_text"][:45] + "..." if len(item["raw_text"]) > 45 else item["raw_text"]
+</lsp_context>

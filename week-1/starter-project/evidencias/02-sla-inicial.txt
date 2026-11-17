@@ -1,0 +1,6 @@
+=== Demostración de Cálculo Determinista de SLA ===
+Incidente: INC-2001 (Severidad P2)
+Minutos transcurridos calculados: 3840 min
+Minutos permitidos por SLA:       480 min
+¿SLA Incumplido?:                 True
+Nota: Observa que para un ticket P2 creado el viernes a las 17:00 y evaluado el lunes a las 09:00 se contaron todo el sábado y domingo como tiempo activo.

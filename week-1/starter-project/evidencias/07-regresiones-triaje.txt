@@ -1,0 +1,14 @@
+Comando: uv run --offline python -m unittest discover -s tests -v
+test_ids_do_not_control_results (test_triage.TriageRegressionTests.test_ids_do_not_control_results) ... ok
+test_normalization_preserves_all_cases (test_triage.TriageRegressionTests.test_normalization_preserves_all_cases) ... ok
+test_other_modules_import (test_triage.TriageRegressionTests.test_other_modules_import) ... ok
+test_other_payment_failure_does_not_invent_502 (test_triage.TriageRegressionTests.test_other_payment_failure_does_not_invent_502) ... ok
+test_unknown_requires_manual_review (test_triage.TriageRegressionTests.test_unknown_requires_manual_review) ... ok
+test_urgency_does_not_control_results (test_triage.TriageRegressionTests.test_urgency_does_not_control_results) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.068s
+
+OK
+
+Código de salida: 0

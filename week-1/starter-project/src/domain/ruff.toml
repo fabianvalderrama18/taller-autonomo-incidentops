@@ -1,0 +1,10 @@
+extend = "../../pyproject.toml"
+
+[lint.flake8-tidy-imports.banned-api]
+"fastapi" = { msg = "El dominio no importa frameworks HTTP (ADR-003)." }
+"pydantic" = { msg = "El dominio no importa esquemas de entrega (ADR-003)." }
+"typer" = { msg = "El dominio no importa la CLI (ADR-003)." }
+"sqlite3" = { msg = "El dominio no importa motores de BD (ADR-001)." }
+"sqlalchemy" = { msg = "El dominio no importa ORMs (ADR-001)." }
+"src.application" = { msg = "El dominio no importa la aplicación (ADR-003)." }
+"src.adapters" = { msg = "El dominio no importa adaptadores (ADR-003)." }

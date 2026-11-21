@@ -1,0 +1,9 @@
+extend = "../../pyproject.toml"
+
+[lint.flake8-tidy-imports.banned-api]
+"fastapi" = { msg = "La aplicación no importa frameworks HTTP (ADR-003)." }
+"pydantic" = { msg = "La aplicación no importa esquemas de entrega (ADR-003)." }
+"typer" = { msg = "La aplicación no importa la CLI (ADR-003)." }
+"sqlite3" = { msg = "La aplicación no importa motores de BD (ADR-001)." }
+"sqlalchemy" = { msg = "La aplicación no importa ORMs (ADR-001)." }
+"src.adapters" = { msg = "La aplicación no importa adaptadores (ADR-003)." }

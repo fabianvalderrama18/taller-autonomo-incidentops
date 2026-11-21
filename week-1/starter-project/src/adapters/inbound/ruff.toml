@@ -1,0 +1,7 @@
+extend = "../../../pyproject.toml"
+
+[lint.flake8-tidy-imports.banned-api]
+"sqlite3" = { msg = "Los adaptadores primarios no importan drivers de BD; use src.adapters.outbound.factory." }
+"sqlalchemy" = { msg = "Los adaptadores primarios no importan ORMs (ADR-001)." }
+"src.adapters.outbound.incident_repository" = { msg = "Use src.adapters.outbound.factory en lugar del repositorio concreto." }
+"src.adapters.outbound.sqlite_repository" = { msg = "Use src.adapters.outbound.factory en lugar del repositorio concreto." }

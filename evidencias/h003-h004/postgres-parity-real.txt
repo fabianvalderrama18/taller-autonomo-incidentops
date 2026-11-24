@@ -1,0 +1,1 @@
+PARIDAD REAL OK: save/upsert, get/ausente, duplicados/exclusión, activos y SELECT 1.

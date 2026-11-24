@@ -1,0 +1,12 @@
+GET /health -> 200 {'status': 'ok', 'database': 'connected'}
+POST incidente -> 201, clasificación P2 persistida
+POST equivalente -> 201, duplicado abierto detectado
+SLA HTTP = CLI: 120 usados / 480 permitidos / 360 restantes
+GET /health -> 200 {'status': 'ok', 'database': 'connected'}
+Reinicio api + db: incidente y SLA conservados en volumen
+GET /health -> 503 {'status': 'error', 'database': 'unavailable'}
+GET /health -> 200 {'status': 'ok', 'database': 'connected'}
+Recuperación de PostgreSQL verificada
+NAME                       IMAGE                    COMMAND                  SERVICE   CREATED          STATUS                            PORTS
+incidentops-taller-api-1   incidentops-taller-api   "uvicorn src.adapter…"   api       43 seconds ago   Up 3 seconds (health: starting)   127.0.0.1:8000->8000/tcp
+incidentops-taller-db-1    postgres:16-alpine       "docker-entrypoint.s…"   db        44 seconds ago   Up 1 second (health: starting)    5432/tcp

@@ -25,7 +25,7 @@ Principio rector (ADR-003 y Constitución, artículos I–II): las dependencias 
 - **Obligación**: delegar siempre en `IncidentService`. REST y CLI no contienen reglas de triaje, normalizaciones propias ni cálculos de SLA.
 
 ### `src/adapters/outbound/`
-- **Puede importar**: `sqlite3` y la configuración de entorno (`DATABASE_URL`), `src.domain` para las entidades y `src.application.ports` para implementar `IncidentRepositoryPort`.
+- **Puede importar**: `sqlite3`, `psycopg` (ADR-006) y la configuración de entorno (`DATABASE_URL`), `src.domain` para las entidades y `src.application.ports` para implementar `IncidentRepositoryPort`.
 - **No puede importar**: adaptadores primarios, FastAPI, Pydantic ni Typer.
 - Expone `src/adapters/outbound/factory.py` como único punto de construcción del repositorio; el motor se sustituye cambiando el adaptador, nunca el dominio.
 

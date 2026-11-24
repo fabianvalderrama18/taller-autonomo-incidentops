@@ -1,0 +1,12 @@
+$ uv run python -m src.adapters.inbound.cli create --title Cuenta bloqueada --raw-text Mi cuenta individual está bloqueada hoy y no puedo acceder --incident-id INC-DEMO --created-at 2026-11-06T17:00:00
+{"incident_id":"INC-DEMO","severity":"P2","component":"auth-identity","rationale":"Bloqueo de una cuenta individual; requiere atención de identidad sin impacto generalizado.","recommended_team":"Security-IAM","duplicate_group_key":"auth-identity:account_lockout","consistency_ratio":1.0,"title":"Cuenta bloqueada","status":"OPEN","created_at":"2026-11-06T17:00:00","resolved_at":null,"is_duplicate":false,"duplicate_of":[]}
+exit_code=0
+
+$ uv run python -m src.adapters.inbound.cli sla --incident-id INC-DEMO --reference-time 2026-11-09T09:00:00
+{"incident_id":"INC-DEMO","severity":"P2","elapsed_minutes":120,"allowed_minutes":480,"remaining_minutes":360,"is_breached":false,"requires_escalation":false}
+exit_code=0
+
+$ uv run python -m src.adapters.inbound.cli health
+{"status": "ok", "database": "connected"}
+exit_code=0
+

@@ -1,0 +1,547 @@
+Comando: uv run --offline python -m src.context_audit --symbol classify_incident_report
+====================================================================================
+ AUDITORÍA DE CONTEXT ENGINEERING: Símbolo objetivo `classify_incident_report`
+ Tokenizador activo: tiktoken (o200k_base)
+====================================================================================
+Estrategia                             | Alcance            | Caracteres | Tokens
+------------------------------------------------------------------------------------
+1. Fuerza Bruta (glob + read todo)     | 8 archivos         | 45347      | 10828 tokens
+2. Búsqueda Textual (grep + read .py)  | 2 archivos .py     | 18151      | 4024 tokens
+3. Semántica vía LSP (AST/Symbols)     | Definición+Refs    | 13285      | 3164 tokens
+------------------------------------------------------------------------------------
+-> Reducción LSP vs. Fuerza Bruta (`glob` + `read`): 70.8% menos tokens
+-> Reducción LSP vs. Búsqueda (`grep` + `read` .py): 21.4% menos tokens
+
+=== Payload Semántico Extraído estilo LSP (Listo para inyectar al LLM) ===
+<lsp_context symbol="classify_incident_report">
+  <!-- 1. Definiciones de Tipos y Políticas (LSP Hover / Type Definition) -->
+# [LSP textDocument/hover type] src/models.py:12
+class SLARule:
+    """Define el acuerdo de nivel de servicio (SLA) para un nivel de severidad."""
+
+    severity: SeverityLevel
+    max_resolution_minutes: int
+    operates_24x7: bool
+    escalation_threshold_ratio: float = 0.75
+
+# [LSP textDocument/hover type] src/models.py:22
+class Incident:
+    """Representa un incidente registrado en la plataforma IncidentOps."""
+
+    incident_id: str
+    title: str
+    component: str
+    severity: SeverityLevel
+    status: IncidentStatus
+    created_at: datetime
+    resolved_at: Optional[datetime] = None
+
+# [LSP textDocument/hover type] src/models.py:35
+class SLAEvaluation:
+    """Resultado determinista de la evaluación de SLA de un incidente."""
+
+    incident_id: str
+    severity: SeverityLevel
+    elapsed_minutes: int
+    allowed_minutes: int
+    remaining_minutes: int
+    is_breached: bool
+    requires_escalation: bool
+
+# [LSP textDocument/hover type] src/models.py:48
+class TriageResult:
+    """Resultado estructurado producido por el clasificador de triaje."""
+
+    incident_id: str
+    severity: SeverityLevel
+    component: str
+    rationale: str
+    recommended_team: str
+    duplicate_group_key: str
+    consistency_ratio: float = 1.0
+
+# [LSP textDocument/hover symbol] src/sla_calculator.py:17
+SLA_POLICY_TABLE: Dict[SeverityLevel, SLARule] = {
+    "P0": SLARule(severity="P0", max_resolution_minutes=60, operates_24x7=True),
+    "P1": SLARule(severity="P1", max_resolution_minutes=240, operates_24x7=True),
+    "P2": SLARule(severity="P2", max_resolution_minutes=480, operates_24x7=False),
+    "P3": SLARule(severity="P3", max_resolution_minutes=1440, operates_24x7=False),
+}
+
+  <!-- 2. Definición Exacta del Símbolo (LSP GoToDefinition) -->
+# [LSP textDocument/definition] src/triage_rules.py:46
+def classify_incident_report(
+    incident_id: str,
+    raw_text: str,
+) -> TriageResult:
+    """Clasifica un reporte mediante reglas deterministas con precedencia explícita.
+
+    Precedencia:
+    1. Exposición de datos entre organizaciones.
+    2. Indisponibilidad generalizada de pagos.
+    3. Interrupción de pagos de alcance limitado.
+    4. Saturación de base de datos con timeouts.
+    5. Bloqueo de cuenta individual.
+    6. Latencia asociada a conjuntos de datos grandes.
+    7. Exportación lenta que termina correctamente.
+    8. Solicitud cosmética.
+    9. Mantenimiento preventivo de certificados de staging.
+    10. Respaldo conservador para casos no reconocidos.
+
+    "hoy", "urgente" y un HTTP 502 aislado no determinan severidad
+    ni componente.
+    """
+    text = _normalize(raw_text)
+
+    cross_tenant_exposure = (
+        "otra organizacion" in text
+        and _has_any(
+            text,
+            (
+                "company_id",
+                "factura",
+                "facturas",
+                "reporte",
+                "pdf",
+            ),
+        )
+        and _has_any(
+            text,
+            (
+                "visualizar",
+                "ver ",
+                "acceso",
+                "acceder",
+                "pertenecientes",
+            ),
+        )
+    )
+
+    if cross_tenant_exposure:
+        return _result(
+            incident_id,
+            "P0",
+            "reporting-api",
+            "Security-IAM",
+            "reporting-api:cross_tenant_data_exposure",
+            (
+                "Exposición de facturas entre organizaciones "
+                "por fallo de autorización."
+            ),
+        )
+
+    payment_context = _has_any(
+        text,
+        (
+            "pago",
+            "pagos",
+            "cobro",
+            "cobros",
+            "tarjeta",
+            "carrito",
+            "pasarela",
+            "gateway de pagos",
+        ),
+    )
+
+    payment_failure = _has_any(
+        text,
+        (
+            "502",
+            "bad gateway",
+            "error",
+            "cayo",
+            "caida",
+            "no puede cobrar",
+            "no pueden cobrar",
+        ),
+    )
+
+    global_payment_scope = _has_any(
+        text,
+        (
+            "todas las transacciones",
+            "ningun comercio",
+            "todos los comercios",
+            "nadie puede cobrar",
+        ),
+    )
+
+    payment_group = (
+        "payments-gateway:payment_http_502"
+        if re.search(r"\b502\b", text)
+        else "payments-gateway:payment_unavailable"
+    )
+
+    if payment_context and payment_failure and global_payment_scope:
+        return _result(
+            incident_id,
+            "P0",
+            "payments-gateway",
+            "Backend-Core",
+            payment_group,
+            "Indisponibilidad generalizada de pagos que impide cobrar.",
+        )
+
+    if payment_context and payment_failure:
+        return _result(
+            incident_id,
+            "P1",
+            "payments-gateway",
+            "Backend-Core",
+            payment_group,
+            (
+                "Interrupción de pagos con alcance limitado "
+                "al comercio reportante."
+            ),
+        )
+
+    database_context = _has_any(
+        text,
+        (
+            "postgresql",
+            "base de datos",
+            "pool de conexiones",
+            "conexiones",
+        ),
+    )
+
+    connection_pressure = (
+        bool(re.search(r"\b9[0-9]\s*%", text))
+        or _has_any(
+            text,
+            (
+                "saturacion",
+                "uso de conexiones",
+            ),
+        )
+    )
+
+    timeout_signal = _has_any(
+        text,
+        (
+            "timeout",
+            "timeouts",
+            "tiempo de espera",
+        ),
+    )
+
+    if database_context and connection_pressure and timeout_signal:
+        return _result(
+            incident_id,
+            "P1",
+            "database-cluster",
+            "Data-DBA",
+            "database-cluster:connection_saturation",
+            (
+                "Saturación de conexiones de base de datos "
+                "acompañada de timeouts."
+            ),
+        )
+
+    account_lockout = (
+        _has_any(
+            text,
+            (
+                "cuenta",
+                "ingresar",
+                "login",
+                "autentic",
+            ),
+        )
+        and _has_any(
+            text,
+            (
+                "bloqueada",
+                "bloqueado",
+                "bloqueo",
+            ),
+        )
+    )
+
+    if account_lockout:
+        return _result(
+            incident_id,
+            "P2",
+            "auth-identity",
+            "Security-IAM",
+            "auth-identity:account_lockout",
+            (
+                "Bloqueo de una cuenta individual; requiere atención "
+                "de identidad sin impacto generalizado."
+            ),
+        )
+
+    latency_signal = _has_any(
+        text,
+        (
+            "tarda",
+            "lenta",
+            "lento",
+            "segundos",
+            "latencia",
+            "demora",
+        ),
+    )
+
+    large_dataset_signal = (
+        bool(re.search(r"\b10[.,]?000\b", text))
+        or _has_any(
+            text,
+            (
+                "mas de 10000",
+                "gran volumen",
+            ),
+        )
+    )
+
+    reporting_context = _has_any(
+        text,
+        (
+            "dashboard",
+            "reportes",
+            "historial",
+            "registros",
+            "ordenes",
+            "planes",
+            "listado",
+        ),
+    )
+
+    if (
+        latency_signal
+        and large_dataset_signal
+        and reporting_context
+    ):
+        return _result(
+            incident_id,
+            "P2",
+            "reporting-api",
+            "Backend-Core",
+            "reporting-api:large_dataset_latency",
+            (
+                "Degradación de rendimiento al consultar "
+                "conjuntos de datos grandes."
+            ),
+        )
+
+    export_context = _has_any(
+        text,
+        (
+            "exportacion",
+            "exportar",
+            "excel",
+            "csv",
+        ),
+    )
+
+    successful_download = _has_any(
+        text,
+        (
+            "al final si descarga",
+            "descarga el archivo completo",
+            "archivo completo",
+            "termina correctamente",
+            "se descarga",
+        ),
+    )
+
+    if (
+        export_context
+        and latency_signal
+        and successful_download
+    ):
+        return _result(
+            incident_id,
+            "P2",
+            "reporting-api",
+            "Backend-Core",
+            "reporting-api:export_latency",
+            (
+                "Exportación lenta que finaliza con "
+                "la descarga completa del archivo."
+            ),
+        )
+
+    cosmetic_request = (
+        _has_any(
+            text,
+            (
+                "color",
+                "cosmetic",
+                "visual",
+            ),
+        )
+        and _has_any(
+            text,
+            (
+                "boton",
+                "interfaz",
+                "ui",
+                "resalta",
+            ),
+        )
+    )
+
+    if cosmetic_request:
+        return _result(
+            incident_id,
+            "P3",
+            "frontend-ui",
+            "Backend-Core",
+            "frontend-ui:cosmetic_request",
+            "Solicitud cosmética de interfaz sin afectación operativa.",
+        )
+
+    certificate_context = _has_any(
+        text,
+        (
+            "certificado",
+            "tls",
+            "ssl",
+        ),
+    )
+
+    staging_context = _has_any(
+        text,
+        (
+            "staging",
+            "preproduccion",
+            "pre-produccion",
+        ),
+    )
+
+    preventive_context = _has_any(
+        text,
+        (
+            "vencera",
+            "vence en",
+            "rotacion programada",
+            "antes del proximo sprint",
+        ),
+    )
+
+    if (
+        certificate_context
+        and staging_context
+        and preventive_context
+    ):
+        return _result(
+            incident_id,
+            "P3",
+            "infra-certificates",
+            "Platform-SRE",
+            "infra-certificates:staging_certificate_maintenance",
+            (
+                "Mantenimiento preventivo de certificado de staging "
+                "sin afectación actual."
+            ),
+        )
+
+    return _result(
+        incident_id,
+        "P3",
+        "unknown-component",
+        "Backend-Core",
+        "unknown-component:unclassified_report",
+        (
+            "Reporte no reconocido por las reglas actuales; "
+            "P3 provisional que requiere revisión manual; "
+            "no acredita un impacto bajo."
+        ),
+    )
+
+  <!-- 3. Referencias de Invocación en el Proyecto (LSP FindReferences) -->
+# [LSP textDocument/references] src/triage_rules.py:528
+  L527: 
+  L528:     baseline = classify_incident_report(
+  L529:         "REG-BASE",
+  L530:         individual_text,
+  L531:     )
+  L532: 
+
+# [LSP textDocument/references] src/triage_rules.py:533
+  L532: 
+  L533:     noisy = classify_incident_report(
+  L534:         "REG-NOISY",
+  L535:         f"URGENTE: {individual_text} hoy",
+  L536:     )
+  L537: 
+
+# [LSP textDocument/references] src/triage_rules.py:544
+  L543: 
+  L544:     unrelated_502 = classify_incident_report(
+  L545:         "REG-502",
+  L546:         (
+  L547:             "El servicio de notificaciones devuelve "
+  L548:             "HTTP 502 al publicar mensajes."
+  L549:         ),
+  L550:     )
+  L551: 
+
+# [LSP textDocument/references] src/triage_rules.py:560
+  L559: 
+  L560:     original = classify_incident_report(
+  L561:         "INC-1006",
+  L562:         original_text,
+  L563:     )
+  L564: 
+
+# [LSP textDocument/references] src/triage_rules.py:565
+  L564: 
+  L565:     changed_id = classify_incident_report(
+  L566:         "INC-9999",
+  L567:         original_text,
+  L568:     )
+  L569: 
+
+# [LSP textDocument/references] src/triage_rules.py:575
+  L574: 
+  L575:     export_result = classify_incident_report(
+  L576:         "REG-EXPORT",
+  L577:         reports_by_id["INC-1009"]["raw_text"],
+  L578:     )
+  L579: 
+
+# [LSP textDocument/references] src/triage_rules.py:648
+  L647: 
+  L648:     first_payment = classify_incident_report(
+  L649:         "PAIR-A",
+  L650:         reports_by_id["INC-1001"]["raw_text"],
+  L651:     )
+  L652: 
+
+# [LSP textDocument/references] src/triage_rules.py:653
+  L652: 
+  L653:     second_payment = classify_incident_report(
+  L654:         "PAIR-B",
+  L655:         reports_by_id["INC-1006"]["raw_text"],
+  L656:     )
+  L657: 
+
+# [LSP textDocument/references] src/triage_rules.py:666
+  L665: 
+  L666:     first_latency = classify_incident_report(
+  L667:         "PAIR-C",
+  L668:         reports_by_id["INC-1003"]["raw_text"],
+  L669:     )
+  L670: 
+
+# [LSP textDocument/references] src/triage_rules.py:671
+  L670: 
+  L671:     second_latency = classify_incident_report(
+  L672:         "PAIR-D",
+  L673:         reports_by_id["INC-1008"]["raw_text"],
+  L674:     )
+  L675: 
+
+# [LSP textDocument/references] src/triage_rules.py:615
+  L614:     for item in reports:
+  L615:         result = classify_incident_report(
+  L616:             item["id"],
+  L617:             item["raw_text"],
+  L618:         )
+  L619: 
+</lsp_context>
+
+Código de salida: 0

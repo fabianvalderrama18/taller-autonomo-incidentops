@@ -1,0 +1,21 @@
+TID251 `psycopg` is banned: PostgreSQL pertenece al adaptador outbound.
+ --> src/domain/_boundary_probe.py:1:8
+  |
+1 | import psycopg
+  |        ^^^^^^^
+
+F401 [*] `psycopg` imported but unused
+ --> src/domain/_boundary_probe.py:1:8
+  |
+1 | import psycopg
+  |        ^^^^^^^
+help: Remove unused import: `psycopg`
+  |
+  - import psycopg
+  |
+
+Found 2 errors.
+[*] 1 fixable with `--fix`.
+
+exit_code=1
+Sonda retirada después de verificar el rechazo.

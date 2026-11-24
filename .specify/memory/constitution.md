@@ -65,9 +65,8 @@ adaptador MCP queda sujeto a la misma obligación de delegación.
 
 El proyecto DEBE usar Python >= 3.10 y gestionar entorno y dependencias con `uv`,
 siendo `uv.lock` la fuente de verdad. El stack de entrega es FastAPI + Pydantic v2
-para REST, Typer para CLI y `uvicorn` para servir. La persistencia DEBE emplear
-`sqlite3` de la biblioteca estándar, sin ORMs pesados, según ADR-001, hasta que un
-ADR específico autorice otro motor. `tiktoken` se reserva a la auditoría de contexto
+para REST, Typer para CLI y `uvicorn` para servir. La persistencia DEBE seleccionar SQLite o PostgreSQL por DATABASE_URL, sin ORM,
+con sqlite3 estándar o psycopg[binary], conforme a ADR-006 que reemplaza parcialmente ADR-001. `tiktoken` se reserva a la auditoría de contexto
 y NO DEBE incorporarse al runtime.
 
 ### V. Verificación obligatoria
@@ -107,4 +106,11 @@ semántico. Toda revisión DEBE comprobar `uv run ruff check src/` y
 `uv run pytest -v` antes de aprobar cambios en `src/`. La complejidad adicional DEBE
 justificarse mediante ADR.
 
-**Version**: 1.2.0 | **Ratified**: 2026-11-21 | **Last Amended**: 2026-11-21
+**Version**: 2.0.0 | **Ratified**: 2026-11-21 | **Last Amended**: 2026-11-24
+
+## Enmienda H003/H004 (ADR-005 y ADR-006)
+
+H003 normaliza aware a America/Bogota y luego naive; naive representa Bogotá.
+El evaluador histórico y el contrato H002 conservan su validación estricta.
+El puerto busca duplicados por clave, estados abiertos y exclusión de ID.
+ADR-004 histórico se conserva; el ADR de persistencia solicitado como 004 es ADR-006.

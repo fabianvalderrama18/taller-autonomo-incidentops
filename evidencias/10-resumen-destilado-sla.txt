@@ -1,0 +1,10 @@
+1. Conservar la firma y las entidades públicas del cálculo de SLA.
+2. Para P0/P1 sumar tiempo continuo; para P2/P3 intersectar días laborables con [08:00,18:00).
+3. Recorrer días con costo O(D) y memoria O(1); excluir fines de semana, no festivos.
+4. Usar datetime sin zona bajo una única hora local de negocio; rechazar fechas con zona e intervalos invertidos.
+5. Usar resolved_at como fin cuando exista; de lo contrario, reference_time.
+6. Acumular segundos y truncar minutos una sola vez para los campos públicos.
+7. Incumplir únicamente cuando el tiempo exacto supera el plazo; la igualdad no incumple.
+8. Escalar un incidente no resuelto desde el 75% y mantener el escalamiento al vencer.
+9. No escalar cuando status sea RESOLVED o exista resolved_at.
+10. Descartar el recorrido minuto a minuto y fórmulas semanales más complejas; verificar bordes y compatibilidad.

@@ -1,0 +1,16 @@
+Comando: uv run --offline python -m src.triage_rules
+Resultados de triaje:
+INC-1001 | P0 | payments-gateway | Backend-Core | payments-gateway:payment_http_502 | Indisponibilidad generalizada de pagos que impide cobrar.
+INC-1002 | P2 | auth-identity | Security-IAM | auth-identity:account_lockout | Bloqueo de una cuenta individual; requiere atención de identidad sin impacto generalizado.
+INC-1003 | P2 | reporting-api | Backend-Core | reporting-api:large_dataset_latency | Degradación de rendimiento al consultar conjuntos de datos grandes.
+INC-1004 | P3 | frontend-ui | Backend-Core | frontend-ui:cosmetic_request | Solicitud cosmética de interfaz sin afectación operativa.
+INC-1005 | P1 | database-cluster | Data-DBA | database-cluster:connection_saturation | Saturación de conexiones de base de datos acompañada de timeouts.
+INC-1006 | P1 | payments-gateway | Backend-Core | payments-gateway:payment_http_502 | Interrupción de pagos con alcance limitado al comercio reportante.
+INC-1007 | P0 | reporting-api | Security-IAM | reporting-api:cross_tenant_data_exposure | Exposición de facturas entre organizaciones por fallo de autorización.
+INC-1008 | P2 | reporting-api | Backend-Core | reporting-api:large_dataset_latency | Degradación de rendimiento al consultar conjuntos de datos grandes.
+INC-1009 | P2 | reporting-api | Backend-Core | reporting-api:export_latency | Exportación lenta que finaliza con la descarga completa del archivo.
+INC-1010 | P3 | infra-certificates | Platform-SRE | infra-certificates:staging_certificate_maintenance | Mantenimiento preventivo de certificado de staging sin afectación actual.
+
+VERIFICACION OK: 10 casos esperados y regresiones superadas.
+
+Código de salida: 0

@@ -1,0 +1,15 @@
+$ uv run python -m src.sla_calculator
+OK | Viernes a lunes | 120 min | vencido=False | escalar=False
+OK | Creación fuera de jornada | 30 min | vencido=False | escalar=False
+OK | Creación en sábado | 30 min | vencido=False | escalar=False
+OK | Solo fin de semana | 0 min | vencido=False | escalar=False
+OK | Jornada completa | 600 min | vencido=False | escalar=False
+OK | P1 continuo en fin de semana | 180 min | vencido=False | escalar=True
+OK | Umbral P2 al 75% | 360 min | vencido=False | escalar=True
+OK | P2 vencido mantiene escalamiento | 481 min | vencido=True | escalar=True
+OK | P0 exactamente al plazo | 60 min | vencido=False | escalar=True
+OK | P0 supera el plazo un segundo | 60 min | vencido=True | escalar=True
+OK | Varios fines de semana | 3120 min | vencido=True | escalar=True
+VERIFICACION OK: 11 casos de SLA.
+
+exit_code=0

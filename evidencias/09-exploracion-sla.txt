@@ -1,0 +1,19 @@
+Exploración de diseño realizada en la conversación de trabajo antes de escribir código SLA.
+
+Problema: el cálculo resta fechas para todas las severidades, aunque P2 y P3 solo operan en horario hábil. El escalamiento se desactiva al incumplir porque contiene una condición not is_breached.
+
+Alternativas:
+1. Restar fechas: simple y O(1), correcto para P0/P1, incorrecto para P2/P3.
+2. Recorrer cada minuto: sencillo como oráculo de pruebas, pero O(M) y costoso para intervalos extensos.
+3. Intersectar cada día con [08:00,18:00): O(D), memoria O(1), legible y suficiente para el taller.
+4. Fórmulas por semanas completas: más eficientes para años de historial, pero añaden complejidad innecesaria a este alcance.
+
+Decisión: utilizar la alternativa 3 para horario hábil y resta continua para 24/7.
+Casos borde: viernes 17:00 a lunes 09:00 = 120 minutos; viernes 18:30 a lunes 08:30 = 30; sábado a lunes 08:30 = 30; intervalo íntegramente de fin de semana = 0; jornada hábil completa = 600. Acumular segundos antes de truncar evita perder fracciones al cruzar días.
+
+Contrato temporal: los datos del taller usan datetime sin zona. Admitir únicamente fechas sin zona, documentadas como una misma hora local de negocio. Rechazar fechas con zona explícita para no calcular silenciosamente mal al mezclar UTC, hora local o cambios de horario. La gestión de zonas y festivos queda fuera del alcance.
+
+Cierre: resolved_at detiene el reloj, como en el contrato original. Si status es RESOLVED o existe resolved_at, no solicitar escalamiento. Si RESOLVED carece de resolved_at, conservar referencia temporal y documentar la limitación de calidad de datos.
+Umbrales: comparar segundos acumulados contra el plazo exacto para no ocultar un vencimiento de segundos. elapsed_minutes y remaining_minutes conservan enteros truncados para compatibilidad. Por ello, a 60 minutos y 1 segundo un P0 está vencido aunque elapsed_minutes muestre 60 y remaining_minutes 0.
+
+No se realizó una segunda conversación limpia en esta etapa. Se conservará un paquete de contexto para completar esa evidencia metodológica sin atribuir una ejecución inexistente.

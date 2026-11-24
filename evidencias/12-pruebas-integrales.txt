@@ -1,0 +1,26 @@
+Comando: uv run --offline python -m unittest discover -s tests -v
+test_all_severity_thresholds (test_sla.SLATests.test_all_severity_thresholds) ... ok
+test_escalated_status_keeps_flag (test_sla.SLATests.test_escalated_status_keeps_flag) ... ok
+test_explicit_timezone_rejected (test_sla.SLATests.test_explicit_timezone_rejected) ... ok
+test_fractional_minutes_accumulate_across_days (test_sla.SLATests.test_fractional_minutes_accumulate_across_days) ... ok
+test_inputs_not_mutated (test_sla.SLATests.test_inputs_not_mutated) ... ok
+test_invalid_interval_or_severity (test_sla.SLATests.test_invalid_interval_or_severity) ... ok
+test_max_date_does_not_overflow (test_sla.SLATests.test_max_date_does_not_overflow) ... ok
+test_one_second_beyond_sla (test_sla.SLATests.test_one_second_beyond_sla) ... ok
+test_opening_closing_and_zero_duration (test_sla.SLATests.test_opening_closing_and_zero_duration) ... ok
+test_random_intervals_against_minute_oracle (test_sla.SLATests.test_random_intervals_against_minute_oracle) ... ok
+test_resolution_stops_clock_and_escalation (test_sla.SLATests.test_resolution_stops_clock_and_escalation) ... ok
+test_resolved_status_without_timestamp (test_sla.SLATests.test_resolved_status_without_timestamp) ... ok
+test_ids_do_not_control_results (test_triage.TriageRegressionTests.test_ids_do_not_control_results) ... ok
+test_normalization_preserves_all_cases (test_triage.TriageRegressionTests.test_normalization_preserves_all_cases) ... ok
+test_other_modules_import (test_triage.TriageRegressionTests.test_other_modules_import) ... ok
+test_other_payment_failure_does_not_invent_502 (test_triage.TriageRegressionTests.test_other_payment_failure_does_not_invent_502) ... ok
+test_unknown_requires_manual_review (test_triage.TriageRegressionTests.test_unknown_requires_manual_review) ... ok
+test_urgency_does_not_control_results (test_triage.TriageRegressionTests.test_urgency_does_not_control_results) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.218s
+
+OK
+
+Código de salida: 0

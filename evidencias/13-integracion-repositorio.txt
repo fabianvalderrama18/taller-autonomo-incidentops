@@ -1,0 +1,9 @@
+Comando: uv run --offline python -m src.incident_repository --records 10000 --iterations 1
+Sembrando 10000 incidentes en SQLite en memoria...
+=== Resultado del Benchmark (Antes de Refactorizar) ===
+Incidentes activos encontrados para 'payments-gateway': 800
+Tiempo total (1 ejecuciones sobre 10000 filas): 11.73 ms
+Promedio por consulta: 11.73 ms
+Diagnóstico: `get_active_incidents_summary` escanea toda la tabla en memoria y ejecuta consultas N+1 por cada fila activa.
+
+Código de salida: 0
